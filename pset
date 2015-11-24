@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Deps: inotify, evince, pdflatex, terminator
+
+# USAGE: pset CLASS NAME
+# CLASS = class directory, referenced from $HOME
+# NAME = name of pset directory, also name of pset tex file
+
+# example: pset classes/myclass hw2
+
+# Expected structure (* = will be created if $HOME/CLASS/NAME does not exist):
+# $HOME/
+# 	CLASS/
+# 		template.tex
+# 		text.pdf
+# 		NAME/*
+# 			NAME.tex*
+# 			NAME.pdf*
+
+# TODO: check args, print USAGE
+# TODO: allow custom template or text names as optional args
+
+export CLASS=$1
+export NAME=$2
+export CLASSDIR="$HOME/$CLASS"
+export DIR="$CLASSDIR/$NAME"
+
+# make directory
+if [ ! -d "$DIR" ]; then
+	mkdir "$DIR"	
+fi
+
+cd $DIR # so the .log, .aux, .pdf files end up in $DIR
+
+cp -n "$CLASSDIR/template.tex" "$DIR/$NAME.tex" # -n prevents from overwriting
+
+pdflatex "$NAME.tex" # compile to PDF
+evince "$CLASSDIR/text.pdf" & # open textbook
+evince "$NAME.pdf" & # open pset PDF
+
+# new terminal window for vim
+terminator -e "vim $NAME.tex" &
+
+# recompile on save
+while true; do inotifywait "$NAME.tex"; pdflatex "$NAME.tex"; done
